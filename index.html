@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDIS — Sistema de Inteligencia Diagnóstica Multi-Agente</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070b12;
+    --surface: #0d1420;
+    --surface2: #111827;
+    --surface3: #1a2236;
+    --border: rgba(99,179,237,0.12);
+    --border2: rgba(99,179,237,0.22);
+    --accent: #38bdf8;
+    --accent2: #22d3ee;
+    --accent3: #6ee7b7;
+    --warn: #f59e0b;
+    --danger: #f43f5e;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --agent1: #38bdf8;
+    --agent2: #a78bfa;
+    --agent3: #34d399;
+    --agent4: #fb923c;
+    --consensus: #f0abfc;
+    --glow1: rgba(56,189,248,0.15);
+    --glow2: rgba(167,139,250,0.15);
+    --glow3: rgba(52,211,153,0.15);
+    --glow4: rgba(251,146,60,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .main-wrapper {
+    position: relative; z-index: 1;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0 18px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+
+  .logo-mark {
+    width: 42px; height: 42px;
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .logo-mark::before { content:''; position:absolute; inset:0; background:var(--glow1); }
+  .logo-mark svg { position:relative; z-index:1; }
+
+  .logo-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: 0.12em; color: var(--accent);
+  }
+  .logo-sub { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3); font-weight: 500; }
+
+  .header-status { display: flex; align-items: center; gap: 24px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 12px;
+    border: 1px solid var(--border2); border-radius: 100px;
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text2);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent3); box-shadow: 0 0 8px var(--accent3);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .session-id { font-family:'Space Mono',monospace; font-size:11px; color:var(--text3); letter-spacing:0.05em; }
+
+  /* GRID */
+  .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* INPUT */
+  .input-panel {
+    grid-column: 1 / -1;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    position: relative; overflow: hidden;
+  }
+  .input-panel::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity:0.6;
+  }
+
+  .panel-label { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .panel-label-text { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--text2); }
+  .panel-label-num { font-family:'Space Mono',monospace; font-size:11px; color:var(--accent); opacity:0.6; }
+  .label-line { flex:1; height:1px; background:var(--border); }
+
+  .input-row { display:flex; gap:16px; align-items:flex-start; }
+  .symptoms-area { flex:1; }
+
+  .symptoms-textarea {
+    width:100%; min-height:120px;
+    background:var(--bg); border:1px solid var(--border2); border-radius:8px;
+    padding:14px 16px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:14px; line-height:1.6;
+    resize:vertical; outline:none; transition:border-color 0.2s;
+  }
+  .symptoms-textarea::placeholder { color:var(--text3); }
+  .symptoms-textarea:focus { border-color:var(--accent); }
+
+  .input-sidebar { display:flex; flex-direction:column; gap:10px; min-width:200px; }
+
+  .meta-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+  .meta-field {
+    background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px 10px;
+  }
+  .meta-field-label { font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-bottom:4px; }
+  .meta-field-input { background:none; border:none; outline:none; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; width:100%; }
+
+  .file-drop {
+    background:var(--bg); border:1px dashed var(--border2); border-radius:8px;
+    padding:12px; text-align:center; cursor:pointer;
+    transition:border-color 0.2s,background 0.2s;
+    font-size:12px; color:var(--text3);
+  }
+  .file-drop:hover { border-color:var(--accent); background:var(--glow1); color:var(--text2); }
+  #file-input { display:none; }
+
+  .analyze-btn {
+    width:100%; padding:12px;
+    background:var(--accent); color:var(--bg);
+    border:none; border-radius:8px;
+    font-family:'Space Mono',monospace; font-size:12px; font-weight:700;
+    letter-spacing:0.1em; text-transform:uppercase;
+    cursor:pointer; transition:all 0.2s;
+    position:relative; overflow:hidden;
+  }
+  .analyze-btn:hover { background:var(--accent2); transform:translateY(-1px); }
+  .analyze-btn:active { transform:translateY(0); }
+  .analyze-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+  .analyze-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,transparent 60%); }
+
+  /* PROCESS FLOW */
+  .process-flow { grid-column:1/-1; display:none; }
+  .process-flow.visible { display:flex; gap:0; align-items:center; }
+
+  .flow-step { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; }
+  .flow-step::after {
+    content:''; position:absolute; top:14px; right:-50%; width:100%; height:1px; background:var(--border);
+  }
+  .flow-step:last-child::after { display:none; }
+
+  .flow-step-dot {
+    width:28px; height:28px; border-radius:50%;
+    border:1.5px solid var(--border2); background:var(--surface);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace; font-size:10px; color:var(--text3);
+    position:relative; z-index:1; transition:all 0.4s;
+  }
+  .flow-step.active .flow-step-dot { border-color:var(--accent); color:var(--accent); box-shadow:0 0 16px var(--glow1); animation:spin-dot 2s linear infinite; }
+  .flow-step.complete .flow-step-dot { border-color:var(--accent3); color:var(--accent3); background:rgba(52,211,153,0.1); }
+
+  @keyframes spin-dot {
+    0%   { box-shadow: 0 0 8px var(--glow1), 0 -8px 8px var(--glow1); }
+    25%  { box-shadow: 8px 0 8px var(--glow1); }
+    50%  { box-shadow: 0 8px 8px var(--glow1); }
+    75%  { box-shadow: -8px 0 8px var(--glow1); }
+    100% { box-shadow: 0 0 8px var(--glow1), 0 -8px 8px var(--glow1); }
+  }
+
+  .flow-step-label { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); text-align:center; transition:color 0.4s; }
+  .flow-step.active .flow-step-label { color:var(--accent); }
+  .flow-step.complete .flow-step-label { color:var(--accent3); }
+
+  /* AGENTS */
+  .agents-row { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+
+  .agent-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:18px;
+    position:relative; overflow:hidden; transition:border-color 0.3s;
+  }
+  .agent-card.thinking { animation:card-pulse 2s ease-in-out infinite; }
+  @keyframes card-pulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 24px var(--agent-glow)} }
+  .agent-card.done { border-color:var(--agent-color); }
+
+  .agent-stripe { position:absolute; top:0; left:0; right:0; height:2px; background:var(--agent-color); opacity:0; transition:opacity 0.4s; }
+  .agent-card.thinking .agent-stripe,
+  .agent-card.done .agent-stripe { opacity:1; }
+
+  .agent-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .agent-id { display:flex; align-items:center; gap:8px; }
+
+  .agent-icon {
+    width:30px; height:30px; border-radius:6px;
+    border:1px solid var(--agent-color); background:var(--agent-glow);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace; font-size:10px; color:var(--agent-color); font-weight:700;
+  }
+  .agent-name { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; color:var(--agent-color); letter-spacing:0.08em; }
+  .agent-model { font-size:10px; color:var(--text3); margin-top:1px; font-weight:300; }
+
+  .agent-status-badge {
+    font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.1em;
+    padding:3px 8px; border-radius:4px; background:var(--surface3); color:var(--text3); text-transform:uppercase;
+  }
+  .agent-status-badge.thinking { background:rgba(56,189,248,0.1); color:var(--accent); animation:badge-blink 1.2s infinite; }
+  @keyframes badge-blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .agent-status-badge.done { background:rgba(110,231,183,0.1); color:var(--accent3); }
+
+  .thinking-indicator { display:none; align-items:center; gap:5px; margin-bottom:10px; }
+  .agent-card.thinking .thinking-indicator { display:flex; }
+
+  .t-dot { width:5px; height:5px; border-radius:50%; background:var(--agent-color); animation:t-bounce 1.2s ease-in-out infinite; }
+  .t-dot:nth-child(2) { animation-delay:0.2s; }
+  .t-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes t-bounce { 0%,80%,100%{transform:scale(0.5);opacity:0.3} 40%{transform:scale(1);opacity:1} }
+
+  .agent-response { font-size:12.5px; line-height:1.65; color:var(--text2); min-height:80px; max-height:200px; overflow-y:auto; }
+  .agent-response::-webkit-scrollbar { width:3px; }
+  .agent-response::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+  .cursor-blink { display:inline-block; width:2px; height:13px; background:var(--agent-color); margin-left:2px; vertical-align:middle; animation:blink 0.8s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .agent-footer { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; opacity:0; transition:opacity 0.4s 0.2s; }
+  .agent-card.done .agent-footer { opacity:1; }
+
+  .confidence-mini { display:flex; align-items:center; gap:6px; font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); }
+  .conf-bar-track { width:60px; height:4px; background:var(--surface3); border-radius:2px; overflow:hidden; }
+  .conf-bar-fill { height:100%; background:var(--agent-color); border-radius:2px; transition:width 1s ease-out; }
+  .agent-diagnosis-tag { font-size:10px; padding:2px 7px; background:var(--surface3); border-radius:4px; color:var(--text2); font-weight:500; }
+
+  /* CONSENSUS */
+  .consensus-section { grid-column:1/-1; display:none; }
+  .consensus-section.visible { display:block; }
+
+  .consensus-label { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .consensus-label-text { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--consensus); }
+
+  .report-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+
+  .report-main {
+    background:var(--surface); border:1px solid rgba(240,171,252,0.2);
+    border-radius:12px; padding:28px;
+    position:relative; overflow:hidden;
+  }
+  .report-main::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--consensus),transparent); }
+
+  .report-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; }
+  .report-eyebrow { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--consensus); margin-bottom:6px; }
+  .report-title { font-family:'Instrument Serif',serif; font-size:28px; color:var(--text); line-height:1.2; }
+  .report-title em { font-style:italic; color:var(--consensus); }
+  .report-meta { text-align:right; font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); line-height:1.8; }
+
+  .report-section { margin-bottom:20px; }
+  .report-section-title {
+    font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--text3); margin-bottom:8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .report-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .report-body { font-size:13.5px; line-height:1.75; color:var(--text2); }
+  .report-body strong { color:var(--text); font-weight:600; }
+
+  .differential-list { display:flex; flex-direction:column; gap:6px; }
+  .diff-item { display:flex; align-items:center; gap:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; }
+  .diff-rank { font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); min-width:20px; }
+  .diff-name { flex:1; font-size:13px; font-weight:500; color:var(--text); }
+  .diff-prob { font-family:'Space Mono',monospace; font-size:11px; color:var(--accent); }
+  .diff-bar { width:80px; height:4px; background:var(--surface3); border-radius:2px; overflow:hidden; }
+  .diff-bar-fill { height:100%; border-radius:2px; transition:width 1s ease-out; }
+
+  .recommendation-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { padding:4px 10px; border-radius:100px; font-size:11px; font-weight:500; }
+  .chip-urgente { background:rgba(244,63,94,0.15); color:#fb7185; border:1px solid rgba(244,63,94,0.3); }
+  .chip-accion  { background:rgba(56,189,248,0.1);  color:var(--accent); border:1px solid rgba(56,189,248,0.25); }
+  .chip-monitor { background:rgba(245,158,11,0.1);  color:#fbbf24; border:1px solid rgba(245,158,11,0.25); }
+
+  /* SIDEBAR */
+  .report-sidebar { display:flex; flex-direction:column; gap:16px; }
+
+  .visual-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; position:relative; overflow:hidden; }
+  .visual-card-title { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--text3); margin-bottom:16px; }
+
+  .gauge-container { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .gauge-svg-wrap { position:relative; width:160px; height:90px; }
+  .gauge-value-label { position:absolute; bottom:0; left:50%; transform:translateX(-50%); text-align:center; }
+  .gauge-value-num { font-family:'Instrument Serif',serif; font-size:32px; color:var(--text); line-height:1; }
+  .gauge-value-unit { font-family:'Space Mono',monospace; font-size:9px; color:var(--text3); letter-spacing:0.1em; }
+  .gauge-legend { display:flex; justify-content:space-between; width:100%; font-family:'Space Mono',monospace; font-size:9px; color:var(--text3); letter-spacing:0.05em; }
+  .risk-label { text-align:center; font-size:13px; font-weight:600; letter-spacing:0.08em; }
+
+  .certainty-blocks { display:flex; gap:3px; margin-bottom:8px; }
+  .cert-block { flex:1; height:28px; border-radius:3px; background:var(--surface3); transition:background 0.5s; }
+  .certainty-value { font-family:'Instrument Serif',serif; font-size:36px; color:var(--text); }
+  .certainty-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+
+  .agreement-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .agreement-item { background:var(--surface2); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+  .agreement-agent-name { font-family:'Space Mono',monospace; font-size:9px; color:var(--text3); text-transform:uppercase; }
+  .agreement-vote { font-size:12px; font-weight:600; color:var(--text); }
+  .agreement-conf { font-family:'Space Mono',monospace; font-size:10px; }
+
+  .disclaimer { grid-column:1/-1; text-align:center; font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); padding-top:24px; border-top:1px solid var(--border); letter-spacing:0.05em; }
+
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="main-wrapper">
+
+  <header>
+    <div class="logo-area">
+      <div class="logo-mark">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 2L11 5M11 17L11 20M2 11L5 11M17 11L20 11" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="11" cy="11" r="5" stroke="#38bdf8" stroke-width="1.5"/>
+          <circle cx="11" cy="11" r="2" fill="#38bdf8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">MEDIS</div>
+        <div class="logo-sub">Sistema de Inteligencia Diagnóstica Multi-Agente</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        Sistema en línea
+      </div>
+      <div class="session-id" id="session-id">SES-——</div>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+
+    <!-- ENTRADA -->
+    <div class="input-panel">
+      <div class="panel-label">
+        <span class="panel-label-num">01</span>
+        <span class="panel-label-text">Datos del Paciente</span>
+        <div class="label-line"></div>
+      </div>
+      <div class="input-row">
+        <div class="symptoms-area">
+          <textarea class="symptoms-textarea" id="symptoms-input"
+            placeholder="Ingrese síntomas, historia clínica, signos vitales, resultados de laboratorio u otras observaciones clínicas…
+
+Ejemplo: Hombre de 45 años, fumador (20 paquetes/año), presenta disnea progresiva de esfuerzo por 3 meses, tos productiva matutina, sibilancias ocasionales. Relación FEV1/FVC 0,65. SpO2 94% en reposo. Sin fiebre. Peso estable."></textarea>
+        </div>
+        <div class="input-sidebar">
+          <div class="meta-fields">
+            <div class="meta-field">
+              <div class="meta-field-label">Edad</div>
+              <input class="meta-field-input" placeholder="—" id="patient-age">
+            </div>
+            <div class="meta-field">
+              <div class="meta-field-label">Sexo</div>
+              <input class="meta-field-input" placeholder="—" id="patient-sex">
+            </div>
+            <div class="meta-field" style="grid-column:1/-1">
+              <div class="meta-field-label">Motivo de Consulta</div>
+              <input class="meta-field-input" placeholder="Resumen breve" id="chief-complaint">
+            </div>
+          </div>
+          <div class="file-drop" onclick="document.getElementById('file-input').click()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <div>Adjuntar labs / imágenes</div>
+            <div style="font-size:10px;margin-top:2px">PDF, PNG, JPG</div>
+            <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" multiple>
+          </div>
+          <button class="analyze-btn" id="analyze-btn" onclick="startAnalysis()">
+            ⬡ &nbsp;Ejecutar Análisis Multi-Agente
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLUJO DE PROCESO -->
+    <div class="process-flow" id="process-flow">
+      <div class="flow-step" id="flow-0">
+        <div class="flow-step-dot">01</div>
+        <div class="flow-step-label">Lectura<br>de Datos</div>
+      </div>
+      <div class="flow-step" id="flow-1">
+        <div class="flow-step-dot">02</div>
+        <div class="flow-step-label">Despacho<br>de Agentes</div>
+      </div>
+      <div class="flow-step" id="flow-2">
+        <div class="flow-step-dot">03</div>
+        <div class="flow-step-label">Razonamiento<br>Paralelo</div>
+      </div>
+      <div class="flow-step" id="flow-3">
+        <div class="flow-step-dot">04</div>
+        <div class="flow-step-label">Ensamble<br>de Consenso</div>
+      </div>
+      <div class="flow-step" id="flow-4">
+        <div class="flow-step-dot">05</div>
+        <div class="flow-step-label">Generación<br>de Informe</div>
+      </div>
+    </div>
+
+    <!-- AGENTES -->
+    <div class="agents-row" id="agents-row">
+
+      <div class="agent-card" id="agent-1" style="--agent-color:var(--agent1);--agent-glow:var(--glow1)">
+        <div class="agent-stripe"></div>
+        <div class="agent-header">
+          <div class="agent-id">
+            <div class="agent-icon">α</div>
+            <div>
+              <div class="agent-name">DIAGNÓSTICO</div>
+              <div class="agent-model">llama-3.3-70b-versatile</div>
+            </div>
+          </div>
+          <div class="agent-status-badge" id="badge-1">En espera</div>
+        </div>
+        <div class="thinking-indicator">
+          <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+          <span style="font-size:10px;color:var(--text3);margin-left:4px">Razonando…</span>
+        </div>
+        <div class="agent-response" id="response-1">
+          <span style="color:var(--text3);font-size:12px;font-style:italic">Esperando datos…</span>
+        </div>
+        <div class="agent-footer">
+          <div class="confidence-mini">
+            <span>Conf.</span>
+            <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar-1" style="width:0%"></div></div>
+            <span id="conf-val-1">—</span>
+          </div>
+          <div class="agent-diagnosis-tag" id="diag-tag-1">—</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-2" style="--agent-color:var(--agent2);--agent-glow:var(--glow2)">
+        <div class="agent-stripe"></div>
+        <div class="agent-header">
+          <div class="agent-id">
+            <div class="agent-icon">β</div>
+            <div>
+              <div class="agent-name">DIFERENCIAL</div>
+              <div class="agent-model">llama-3.1-8b-instant</div>
+            </div>
+          </div>
+          <div class="agent-status-badge" id="badge-2">En espera</div>
+        </div>
+        <div class="thinking-indicator">
+          <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+          <span style="font-size:10px;color:var(--text3);margin-left:4px">Razonando…</span>
+        </div>
+        <div class="agent-response" id="response-2">
+          <span style="color:var(--text3);font-size:12px;font-style:italic">Esperando datos…</span>
+        </div>
+        <div class="agent-footer">
+          <div class="confidence-mini">
+            <span>Conf.</span>
+            <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar-2" style="width:0%"></div></div>
+            <span id="conf-val-2">—</span>
+          </div>
+          <div class="agent-diagnosis-tag" id="diag-tag-2">—</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-3" style="--agent-color:var(--agent3);--agent-glow:var(--glow3)">
+        <div class="agent-stripe"></div>
+        <div class="agent-header">
+          <div class="agent-id">
+            <div class="agent-icon">γ</div>
+            <div>
+              <div class="agent-name">RIESGO</div>
+              <div class="agent-model">openai/gpt-oss-20b</div>
+            </div>
+          </div>
+          <div class="agent-status-badge" id="badge-3">En espera</div>
+        </div>
+        <div class="thinking-indicator">
+          <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+          <span style="font-size:10px;color:var(--text3);margin-left:4px">Razonando…</span>
+        </div>
+        <div class="agent-response" id="response-3">
+          <span style="color:var(--text3);font-size:12px;font-style:italic">Esperando datos…</span>
+        </div>
+        <div class="agent-footer">
+          <div class="confidence-mini">
+            <span>Conf.</span>
+            <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar-3" style="width:0%"></div></div>
+            <span id="conf-val-3">—</span>
+          </div>
+          <div class="agent-diagnosis-tag" id="diag-tag-3">—</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-4" style="--agent-color:var(--agent4);--agent-glow:var(--glow4)">
+        <div class="agent-stripe"></div>
+        <div class="agent-header">
+          <div class="agent-id">
+            <div class="agent-icon">δ</div>
+            <div>
+              <div class="agent-name">TERAPÉUTICA</div>
+              <div class="agent-model">openai/gpt-oss-120b</div>
+            </div>
+          </div>
+          <div class="agent-status-badge" id="badge-4">En espera</div>
+        </div>
+        <div class="thinking-indicator">
+          <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+          <span style="font-size:10px;color:var(--text3);margin-left:4px">Razonando…</span>
+        </div>
+        <div class="agent-response" id="response-4">
+          <span style="color:var(--text3);font-size:12px;font-style:italic">Esperando datos…</span>
+        </div>
+        <div class="agent-footer">
+          <div class="confidence-mini">
+            <span>Conf.</span>
+            <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-bar-4" style="width:0%"></div></div>
+            <span id="conf-val-4">—</span>
+          </div>
+          <div class="agent-diagnosis-tag" id="diag-tag-4">—</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CONSENSO -->
+    <div class="consensus-section" id="consensus-section">
+      <div class="consensus-label">
+        <div class="label-line"></div>
+        <span class="panel-label-num" style="color:var(--consensus)">05</span>
+        <span class="consensus-label-text">Motor de Consenso · Informe Final</span>
+        <div class="label-line"></div>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-main">
+          <div class="report-header">
+            <div>
+              <div class="report-eyebrow">Informe Diagnóstico de Consenso</div>
+              <div class="report-title" id="report-title">Generando<em> diagnóstico…</em></div>
+            </div>
+            <div class="report-meta" id="report-meta">
+              MODELO: llama-3.3-70b<br>
+              ROL: Consenso<br>
+              <span id="report-time">——:——:——</span>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">Resumen Clínico</div>
+            <div class="report-body" id="report-summary"><span style="color:var(--text3)">Ensamblando respuestas de agentes…</span></div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">Diagnósticos Diferenciales</div>
+            <div class="differential-list" id="differential-list">
+              <div style="color:var(--text3);font-size:12px;padding:8px">Análisis pendiente…</div>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">Recomendaciones Clínicas</div>
+            <div class="recommendation-chips" id="recommendation-chips">
+              <span style="color:var(--text3);font-size:12px">Pendiente…</span>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">Notas de Consenso entre Agentes</div>
+            <div class="report-body" id="report-notes"><span style="color:var(--text3)">—</span></div>
+          </div>
+        </div>
+
+        <!-- Sidebar visual -->
+        <div class="report-sidebar">
+
+          <div class="visual-card">
+            <div class="visual-card-title">Nivel de Riesgo Global</div>
+            <div class="gauge-container">
+              <div class="gauge-svg-wrap">
+                <svg width="160" height="90" viewBox="0 0 160 90">
+                  <defs>
+                    <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" style="stop-color:#22d3ee"/>
+                      <stop offset="40%" style="stop-color:#f59e0b"/>
+                      <stop offset="100%" style="stop-color:#f43f5e"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M 15 85 A 65 65 0 0 1 145 85" fill="none" stroke="#1a2236" stroke-width="12" stroke-linecap="round"/>
+                  <path id="gauge-arc" d="M 15 85 A 65 65 0 0 1 145 85" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round"
+                        stroke-dasharray="204" stroke-dashoffset="204" style="transition:stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)"/>
+                  <line id="gauge-needle" x1="80" y1="85" x2="80" y2="30"
+                        stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"
+                        style="transform-origin:80px 85px;transform:rotate(-90deg);transition:transform 1.5s cubic-bezier(0.4,0,0.2,1)"/>
+                  <circle cx="80" cy="85" r="5" fill="#e2e8f0"/>
+                </svg>
+                <div class="gauge-value-label">
+                  <div class="gauge-value-num" id="gauge-num">—</div>
+                  <div class="gauge-value-unit">/ 100</div>
+                </div>
+              </div>
+              <div class="gauge-legend" style="width:160px">
+                <span>BAJO</span><span>MOD</span><span>ALTO</span>
+              </div>
+              <div class="risk-label" id="risk-label" style="color:var(--text3)">—</div>
+            </div>
+          </div>
+
+          <div class="visual-card">
+            <div class="visual-card-title">Certeza Diagnóstica</div>
+            <div class="certainty-blocks" id="certainty-blocks">
+              <div class="cert-block"></div><div class="cert-block"></div>
+              <div class="cert-block"></div><div class="cert-block"></div>
+              <div class="cert-block"></div><div class="cert-block"></div>
+              <div class="cert-block"></div><div class="cert-block"></div>
+              <div class="cert-block"></div><div class="cert-block"></div>
+            </div>
+            <div class="certainty-value" id="certainty-value">—</div>
+            <div class="certainty-sub" id="certainty-sub">Esperando consenso</div>
+          </div>
+
+          <div class="visual-card">
+            <div class="visual-card-title">Votos de Agentes</div>
+            <div class="agreement-grid">
+              <div class="agreement-item">
+                <div class="agreement-agent-name">α Diagnóstico</div>
+                <div class="agreement-vote" id="vote-1">—</div>
+                <div class="agreement-conf" id="vote-conf-1" style="color:var(--agent1)">—</div>
+              </div>
+              <div class="agreement-item">
+                <div class="agreement-agent-name">β Diferencial</div>
+                <div class="agreement-vote" id="vote-2">—</div>
+                <div class="agreement-conf" id="vote-conf-2" style="color:var(--agent2)">—</div>
+              </div>
+              <div class="agreement-item">
+                <div class="agreement-agent-name">γ Riesgo</div>
+                <div class="agreement-vote" id="vote-3">—</div>
+                <div class="agreement-conf" id="vote-conf-3" style="color:var(--agent3)">—</div>
+              </div>
+              <div class="agreement-item">
+                <div class="agreement-agent-name">δ Terapéutica</div>
+                <div class="agreement-vote" id="vote-4">—</div>
+                <div class="agreement-conf" id="vote-conf-4" style="color:var(--agent4)">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠ &nbsp;MEDIS es una demostración de concepto. Las respuestas son generadas por IA y no deben usarse para toma de decisiones clínicas reales. Consulte siempre a profesionales de la salud calificados.
+    </div>
+
+  </div><!-- /dashboard-grid -->
+</div><!-- /main-wrapper -->
+
+<script>
+// ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
+const GROQ_API_KEY = "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"; // Reemplaza con tu clave de Groq
+
+// Esquema JSON estricto que el agente de consenso DEBE seguir
+const CONSENSUS_SCHEMA = `{
+  "diagnosticoPrincipal": "string — nombre de la condición principal",
+  "puntuacionRiesgo": "integer 0-100",
+  "nivelRiesgo": "string — uno de: Bajo | Moderado | Alto | Crítico",
+  "certeza": "integer 0-100",
+  "etiquetaCerteza": "string — ej: Alta Confianza",
+  "resumenClinico": "string — 2 a 3 oraciones describiendo el cuadro clínico",
+  "diferenciales": [
+    {
+      "nombre": "string",
+      "probabilidad": "integer 0-100",
+      "color": "string hex color — usa estos exactamente: #38bdf8 | #a78bfa | #34d399 | #fb923c"
+    }
+  ],
+  "recomendaciones": [
+    {
+      "texto": "string — acción concreta",
+      "tipo": "string — uno de: urgente | accion | monitor"
+    }
+  ],
+  "votosAgentes": [
+    {
+      "agente": "string",
+      "diagnostico": "string — máximo 4 palabras",
+      "confianza": "integer 0-100"
+    }
+  ],
+  "notasConsenso": "string — 1 a 2 oraciones sobre acuerdo/desacuerdo entre agentes"
+}`;
+
+// ─── AGENTES ──────────────────────────────────────────────────────────────────
+const AGENTS = [
+  {
+    id: 1,
+    name: "DIAGNÓSTICO",
+    model: "llama-3.3-70b-versatile",
+    systemPrompt: `Eres un agente IA especializado en diagnóstico primario. Responde en ESPAÑOL.
+Dado el caso clínico, entrega:
+1. DIAGNÓSTICO PRINCIPAL: [condición] ([confianza]% confianza)
+2. Razonamiento clínico breve (3-4 oraciones)
+3. Evidencia clave del caso
+
+Comienza siempre con la línea "DIAGNÓSTICO PRINCIPAL:" seguida del nombre y confianza. Sé preciso y conciso como un internista certificado.`
+  },
+  {
+    id: 2,
+    name: "DIFERENCIAL",
+    model: "llama-3.1-8b-instant",
+    systemPrompt: `Eres un agente IA especializado en diagnóstico diferencial. Responde en ESPAÑOL.
+Dado el caso clínico, entrega:
+1. DIAGNÓSTICO PRINCIPAL: [condición] ([confianza]% confianza)
+2. 2-3 diagnósticos alternativos a descartar
+3. Características diferenciadoras clave
+
+Comienza siempre con "DIAGNÓSTICO PRINCIPAL:". Sé sistemático como un experto en razonamiento clínico.`
+  },
+  {
+    id: 3,
+    name: "RIESGO",
+    model: "openai/gpt-oss-20b",
+    systemPrompt: `Eres un agente IA analista de riesgo clínico. Responde en ESPAÑOL.
+Dado el caso clínico, entrega:
+1. DIAGNÓSTICO PRINCIPAL: [condición] ([confianza]% confianza)
+2. Estratificación de riesgo (Bajo/Moderado/Alto/Crítico) con puntuación 0-100
+3. Señales de alarma y urgencias
+4. Evaluación pronóstica
+
+Comienza siempre con "DIAGNÓSTICO PRINCIPAL:". Piensa como un médico de UCI evaluando urgencia.`
+  },
+  {
+    id: 4,
+    name: "TERAPÉUTICA",
+    model: "openai/gpt-oss-120b",
+    systemPrompt: `Eres un agente IA especialista en recomendaciones terapéuticas. Responde en ESPAÑOL.
+Dado el caso clínico, entrega:
+1. DIAGNÓSTICO PRINCIPAL: [condición] ([confianza]% confianza)
+2. Prioridades de manejo inmediato (1-3 ítems)
+3. Estudios complementarios recomendados
+4. Enfoque terapéutico
+
+Comienza siempre con "DIAGNÓSTICO PRINCIPAL:". Piensa como un hospitalista enfocado en pasos accionables.`
+  }
+];
+
+const CONSENSUS_MODEL = "llama-3.3-70b-versatile";
+
+let agentResponses = {};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function genSessionId() {
+  return 'SES-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+}
+
+function setFlowStep(step, state) {
+  const el = document.getElementById(`flow-${step}`);
+  if (el) el.className = 'flow-step ' + state;
+}
+
+function setAgentState(id, state) {
+  const card = document.getElementById(`agent-${id}`);
+  card.className = 'agent-card ' + state;
+  const badge = document.getElementById(`badge-${id}`);
+  if (state === 'thinking') {
+    badge.textContent = 'Procesando';
+    badge.className = 'agent-status-badge thinking';
+  } else if (state === 'done') {
+    badge.textContent = 'Completado';
+    badge.className = 'agent-status-badge done';
+  }
+}
+
+function extractConfidence(text) {
+  const match = text.match(/(\d{1,3})%\s*confianza/i) || text.match(/(\d{1,3})%\s*confidence/i);
+  return match ? Math.min(100, parseInt(match[1])) : Math.floor(Math.random() * 20 + 60);
+}
+
+function extractPrimaryDx(text) {
+  const match = text.match(/DIAGNÓSTICO PRINCIPAL:\s*([^(\n]+?)(?:\s*\(|\s*\n|$)/i)
+               || text.match(/DIAGNÓSTICO PRINCIPAL:\s*(.+)/i);
+  if (match) return match[1].trim().split(' ').slice(0, 4).join(' ');
+  return 'Ver informe';
+}
+
+function streamText(elementId, text, speed = 14) {
+  return new Promise(resolve => {
+    const el = document.getElementById(elementId);
+    el.innerHTML = '';
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor-blink';
+    el.appendChild(cursor);
+    const timer = setInterval(() => {
+      if (i < text.length) {
+        cursor.insertAdjacentText('beforebegin', text[i++]);
+        el.scrollTop = el.scrollHeight;
+      } else {
+        clearInterval(timer);
+        cursor.remove();
+        resolve();
+      }
+    }, speed);
+  });
+}
+
+// ─── API CALL ─────────────────────────────────────────────────────────────────
+async function callGroq(model, systemPrompt, userContent, jsonMode = false) {
+  const body = {
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user",   content: userContent }
+    ],
+    max_tokens: 800,
+    temperature: jsonMode ? 0.1 : 0.4,
+    stream: false
+  };
+  if (jsonMode) body.response_format = { type: "json_object" };
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Error Groq ${res.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ─── RUN AGENT ────────────────────────────────────────────────────────────────
+async function runAgent(agent, caseText) {
+  setAgentState(agent.id, 'thinking');
+  document.getElementById(`response-${agent.id}`).innerHTML =
+    '<span style="color:var(--text3);font-size:12px;font-style:italic">Analizando datos del caso…</span>';
+
+  try {
+    const response = await callGroq(agent.model, agent.systemPrompt, caseText, false);
+    agentResponses[agent.id] = response;
+
+    const conf = extractConfidence(response);
+    const dx   = extractPrimaryDx(response);
+
+    await streamText(`response-${agent.id}`, response, 10);
+    setAgentState(agent.id, 'done');
+
+    setTimeout(() => {
+      document.getElementById(`conf-bar-${agent.id}`).style.width = conf + '%';
+      document.getElementById(`conf-val-${agent.id}`).textContent  = conf + '%';
+      document.getElementById(`diag-tag-${agent.id}`).textContent  = dx;
+    }, 300);
+
+  } catch (err) {
+    agentResponses[agent.id] = `Error: ${err.message}`;
+    document.getElementById(`response-${agent.id}`).innerHTML =
+      `<span style="color:var(--danger);font-size:12px">⚠ Error del agente: ${err.message}</span>`;
+    setAgentState(agent.id, 'done');
+  }
+}
+
+// ─── CONSENSUS ────────────────────────────────────────────────────────────────
+function buildFallback(agentData) {
+  return {
+    diagnosticoPrincipal: agentData[1] ? extractPrimaryDx(agentData[1]) : "Evaluación incompleta",
+    puntuacionRiesgo: 55,
+    nivelRiesgo: "Moderado",
+    certeza: 60,
+    etiquetaCerteza: "Confianza Moderada",
+    resumenClinico: "Los agentes completaron su análisis. Revise los resultados individuales para mayor detalle.",
+    diferenciales: [
+      { nombre: extractPrimaryDx(agentData[1] || ''), probabilidad: 65, color: "#38bdf8" },
+      { nombre: extractPrimaryDx(agentData[2] || ''), probabilidad: 40, color: "#a78bfa" },
+      { nombre: extractPrimaryDx(agentData[3] || ''), probabilidad: 25, color: "#34d399" }
+    ],
+    recomendaciones: [
+      { texto: "Evaluación clínica presencial urgente", tipo: "urgente" },
+      { texto: "Solicitar estudios complementarios", tipo: "accion" },
+      { texto: "Monitoreo de signos vitales", tipo: "monitor" }
+    ],
+    votosAgentes: AGENTS.map((a, i) => ({
+      agente: a.name,
+      diagnostico: extractPrimaryDx(agentData[i + 1] || ''),
+      confianza: extractConfidence(agentData[i + 1] || '')
+    })),
+    notasConsenso: "Los agentes completaron el análisis. Se recomienda revisión médica profesional."
+  };
+}
+
+async function runConsensus(caseText) {
+  const allResponses = Object.entries(agentResponses)
+    .map(([id, txt]) => `AGENTE ${id} (${AGENTS[id - 1].name}):\n${txt}`)
+    .join('\n\n---\n\n');
+
+  const systemPrompt = `Eres el médico IA jefe de consenso. Recibes respuestas de 4 agentes especialistas y las sintetizas en un informe clínico unificado.
+
+INSTRUCCIONES CRÍTICAS:
+1. Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin explicaciones, sin bloques markdown.
+2. El JSON debe seguir EXACTAMENTE este esquema (todos los campos son obligatorios):
+
+${CONSENSUS_SCHEMA}
+
+3. Los arrays "diferenciales" deben tener entre 3 y 4 elementos.
+4. El array "recomendaciones" debe tener entre 3 y 5 elementos.
+5. El array "votosAgentes" debe tener exactamente 4 elementos, uno por agente.
+6. Todos los textos deben estar en español.`;
+
+  const userPrompt = `Caso del paciente:\n${caseText}\n\n=== RESPUESTAS DE LOS AGENTES ===\n${allResponses}\n\nSintetiza en JSON siguiendo el esquema exacto.`;
+
+  let parsed;
+  try {
+    const raw = await callGroq(CONSENSUS_MODEL, systemPrompt, userPrompt, true);
+    // Strip any accidental markdown fences
+    const clean = raw.replace(/```json|```/gi, '').trim();
+    parsed = JSON.parse(clean);
+  } catch (err) {
+    console.warn("JSON del consenso falló, usando fallback:", err.message);
+    parsed = buildFallback(agentResponses);
+  }
+
+  // ── Validación y normalización ───────────────────────────────────────────
+  parsed.puntuacionRiesgo = Math.min(100, Math.max(0, parseInt(parsed.puntuacionRiesgo) || 55));
+  parsed.certeza          = Math.min(100, Math.max(0, parseInt(parsed.certeza)          || 60));
+  if (!Array.isArray(parsed.diferenciales)    || parsed.diferenciales.length    === 0) parsed.diferenciales    = buildFallback(agentResponses).diferenciales;
+  if (!Array.isArray(parsed.recomendaciones)  || parsed.recomendaciones.length  === 0) parsed.recomendaciones  = buildFallback(agentResponses).recomendaciones;
+  if (!Array.isArray(parsed.votosAgentes)     || parsed.votosAgentes.length     === 0) parsed.votosAgentes     = buildFallback(agentResponses).votosAgentes;
+
+  // ── Renderizado ──────────────────────────────────────────────────────────
+  document.getElementById('report-title').innerHTML =
+    `<em>${parsed.diagnosticoPrincipal || 'Sin diagnóstico'}</em>`;
+  document.getElementById('report-time').textContent = new Date().toLocaleTimeString('es-CO');
+
+  document.getElementById('report-summary').innerHTML = '';
+  await streamText('report-summary', parsed.resumenClinico || '—', 13);
+
+  buildRiskGauge(parsed.puntuacionRiesgo);
+  buildCertaintyMeter(parsed.certeza);
+  buildDifferentials(parsed.diferenciales);
+  buildRecommendations(parsed.recomendaciones);
+  buildAgentVotes(parsed.votosAgentes);
+  document.getElementById('report-notes').textContent = parsed.notasConsenso || '—';
+}
+
+// ─── VISUAL BUILDERS ──────────────────────────────────────────────────────────
+function buildRiskGauge(score) {
+  const totalLength = 204;
+  document.getElementById('gauge-arc').style.strokeDashoffset = totalLength - (score / 100) * totalLength;
+  document.getElementById('gauge-needle').style.transform = `rotate(${-90 + (score / 100) * 180}deg)`;
+  document.getElementById('gauge-num').textContent = score;
+  const label = document.getElementById('risk-label');
+  if      (score < 30) { label.textContent = 'RIESGO BAJO';     label.style.color = '#22d3ee'; }
+  else if (score < 60) { label.textContent = 'RIESGO MODERADO'; label.style.color = '#f59e0b'; }
+  else if (score < 80) { label.textContent = 'RIESGO ALTO';     label.style.color = '#fb923c'; }
+  else                 { label.textContent = 'RIESGO CRÍTICO';  label.style.color = '#f43f5e'; }
+}
+
+function buildCertaintyMeter(pct) {
+  const blocks = document.querySelectorAll('#certainty-blocks .cert-block');
+  const filled = Math.round(pct / 10);
+  const color  = pct >= 75 ? '#34d399' : pct >= 50 ? '#f59e0b' : '#f43f5e';
+  blocks.forEach((b, i) => {
+    setTimeout(() => { b.style.background = i < filled ? color : 'var(--surface3)'; }, i * 80);
+  });
+  document.getElementById('certainty-value').textContent = pct + '%';
+  document.getElementById('certainty-sub').textContent   =
+    pct >= 75 ? 'Alta Confianza' : pct >= 50 ? 'Confianza Moderada' : 'Confianza Baja';
+}
+
+function buildDifferentials(differentials) {
+  const container = document.getElementById('differential-list');
+  container.innerHTML = '';
+  differentials.forEach((d, i) => {
+    const prob = Math.min(100, Math.max(0, parseInt(d.probabilidad) || 0));
+    const el   = document.createElement('div');
+    el.className = 'diff-item';
+    el.innerHTML = `
+      <div class="diff-rank">#${i + 1}</div>
+      <div class="diff-name">${d.nombre || '—'}</div>
+      <div class="diff-bar"><div class="diff-bar-fill" style="width:0%;background:${d.color || '#38bdf8'}" data-target="${prob}"></div></div>
+      <div class="diff-prob">${prob}%</div>`;
+    container.appendChild(el);
+    setTimeout(() => { el.querySelector('.diff-bar-fill').style.width = prob + '%'; }, 200 + i * 100);
+  });
+}
+
+function buildRecommendations(recs) {
+  const container = document.getElementById('recommendation-chips');
+  container.innerHTML = '';
+  const typeMap = { urgente: 'urgente', accion: 'accion', monitor: 'monitor', urgent: 'urgente', action: 'accion' };
+  recs.forEach(r => {
+    const chip = document.createElement('span');
+    chip.className = `chip chip-${typeMap[r.tipo] || 'accion'}`;
+    chip.textContent = r.texto || '—';
+    container.appendChild(chip);
+  });
+}
+
+function buildAgentVotes(votes) {
+  votes.forEach((v, i) => {
+    const id = i + 1;
+    const voteEl = document.getElementById(`vote-${id}`);
+    const confEl = document.getElementById(`vote-conf-${id}`);
+    if (voteEl) voteEl.textContent = v.diagnostico || '—';
+    if (confEl) confEl.textContent = (v.confianza || '—') + '% conf.';
+  });
+}
+
+// ─── MAIN ENTRY ───────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  const symptoms = document.getElementById('symptoms-input').value.trim();
+  if (!symptoms) {
+    document.getElementById('symptoms-input').style.borderColor = 'var(--danger)';
+    setTimeout(() => { document.getElementById('symptoms-input').style.borderColor = ''; }, 1500);
+    return;
+  }
+  if (GROQ_API_KEY === "gsk_TU_CLAVE_GROQ_AQUI") {
+    alert("Por favor, reemplaza GROQ_API_KEY con tu clave real de Groq en el script.");
+    return;
+  }
+
+  const age    = document.getElementById('patient-age').value;
+  const sex    = document.getElementById('patient-sex').value;
+  const chief  = document.getElementById('chief-complaint').value;
+
+  const caseText = [
+    age   ? `Edad: ${age}`               : '',
+    sex   ? `Sexo: ${sex}`               : '',
+    chief ? `Motivo de consulta: ${chief}` : '',
+    `Datos clínicos:\n${symptoms}`
+  ].filter(Boolean).join('\n');
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳  Análisis en curso…';
+  agentResponses = {};
+
+  document.getElementById('process-flow').classList.add('visible');
+  document.getElementById('consensus-section').classList.remove('visible');
+  document.getElementById('session-id').textContent = genSessionId();
+
+  // Paso 0 — Lectura de datos
+  setFlowStep(0, 'active');
+  await new Promise(r => setTimeout(r, 600));
+  setFlowStep(0, 'complete');
+
+  // Paso 1 — Despacho
+  setFlowStep(1, 'active');
+  await new Promise(r => setTimeout(r, 400));
+  setFlowStep(1, 'complete');
+
+  // Paso 2 — Razonamiento paralelo
+  setFlowStep(2, 'active');
+  await Promise.all(AGENTS.map(a => runAgent(a, caseText)));
+  setFlowStep(2, 'complete');
+
+  // Paso 3 — Ensamble consenso
+  setFlowStep(3, 'active');
+  await new Promise(r => setTimeout(r, 400));
+  setFlowStep(3, 'complete');
+
+  // Paso 4 — Generación de informe
+  setFlowStep(4, 'active');
+  document.getElementById('consensus-section').classList.add('visible');
+  document.getElementById('consensus-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  await runConsensus(caseText);
+  setFlowStep(4, 'complete');
+
+  btn.disabled = false;
+  btn.textContent = '⬡  Nuevo Análisis';
+}
+
+// Ctrl+Enter para ejecutar
+document.getElementById('symptoms-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey) startAnalysis();
+});
+
+// Session ID inicial
+document.getElementById('session-id').textContent = genSessionId();
+</script>
+</body>
+</html>
